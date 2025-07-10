@@ -2,7 +2,11 @@ import React from "react";
 import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const SearchBar = () => {
+const SearchBar = ({
+  value,
+  onChangeText,
+  placeholder = "Search Location",
+}) => {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -14,12 +18,25 @@ const SearchBar = () => {
         />
         <TextInput
           style={styles.input}
-          placeholder="Search Location"
+          placeholder={placeholder}
           placeholderTextColor="#888"
+          value={value}
+          onChangeText={onChangeText}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
-        <TouchableOpacity style={styles.qrButton}>
-          <Ionicons name="qr-code" size={20} color="#fff" />
-        </TouchableOpacity>
+        {value ? (
+          <TouchableOpacity
+            onPress={() => onChangeText("")}
+            style={styles.clearButton}
+          >
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.qrButton}>
+            <Ionicons name="qr-code" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -48,6 +65,9 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   qrButton: {
+    padding: 8,
+  },
+  clearButton: {
     padding: 8,
   },
 });

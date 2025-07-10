@@ -1,36 +1,70 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { supabase } from "../database/supabase";
 
-const AuthGuard = () => {
+const AuthGuard = ({ children }) => {
   const navigation = useNavigation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Login Required</Text>
-        <Text style={styles.message}>
-          Please login or create an account to access this feature.
-        </Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.loginButton]}
-            onPress={() => navigation.navigate("Login", { screen: "Login" })}
-          >
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.registerButton]}
-            onPress={() =>
-              navigation.navigate("Register", { screen: "Register" })
-            }
-          >
-            <Text style={styles.buttonText}>Create Account</Text>
-          </TouchableOpacity>
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+      if (error) throw error;
+      setIsAuthenticated(!!session);
+    } catch (error) {
+      console.error("Error checking auth status:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Login Required</Text>
+          <Text style={styles.message}>
+            Please login or create an account to access this feature.
+          </Text>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.loginButton]}
+              onPress={() => navigation.navigate("Login", { screen: "Login" })}
+            >
+              <Text style={styles.buttonText}>Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.registerButton]}
+              onPress={() =>
+                navigation.navigate("Register", { screen: "Register" })
+              }
+            >
+              <Text style={styles.buttonText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  }
+
+  return children;
 };
 
 const styles = StyleSheet.create({
@@ -40,6 +74,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#fff",
+    fontSize: 16,
   },
   card: {
     backgroundColor: "#1a1a1a",

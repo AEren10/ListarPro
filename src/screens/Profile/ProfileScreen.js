@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../database/supabase";
@@ -25,12 +26,34 @@ const ProfileScreen = () => {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [user, setUser] = useState(null);
+  const [userShops, setUserShops] = useState([]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserShops();
+    }
+  }, [user]);
+
+  const fetchUserShops = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setUserShops(data || []);
+    } catch (error) {
+      console.error("Error fetching user shops:", error);
+    }
+  };
 
   const checkUser = async () => {
     try {
@@ -212,7 +235,7 @@ const ProfileScreen = () => {
       setProfile(null);
       navigation.reset({
         index: 0,
-        routes: [{ name: "Home" }],
+        routes: [{ name: "Auth", params: { screen: "Auth" } }],
       });
     } catch (error) {
       console.error("Error signing out:", error.message);
@@ -221,6 +244,24 @@ const ProfileScreen = () => {
       setLoading(false);
     }
   };
+
+  const renderShopCard = (shop) => (
+    <TouchableOpacity
+      key={shop.id}
+      style={styles.shopCard}
+      onPress={() => navigation.navigate("ShopDetails", { shop })}
+    >
+      <Image source={{ uri: shop.img_url }} style={styles.shopImage} />
+      <View style={styles.shopInfo}>
+        <Text style={styles.shopName} numberOfLines={1}>
+          {shop.name}
+        </Text>
+        <Text style={styles.shopAddress} numberOfLines={2}>
+          {shop.address}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   if (loading) {
     return (
@@ -235,109 +276,129 @@ const ProfileScreen = () => {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          disabled={loading}
-        >
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Profile Photo Section */}
-      <View style={styles.photoContainer}>
-        <TouchableOpacity onPress={pickImage} disabled={uploading}>
-          {profile?.avatar_url ? (
-            <Image
-              source={{ uri: profile.avatar_url }}
-              style={styles.avatar}
-              resizeMode="cover"
-              onError={(e) =>
-                console.log("Image loading error:", e.nativeEvent.error)
-              }
-            />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={40} color="#666" />
-            </View>
-          )}
-          {uploading && (
-            <View style={styles.uploadingOverlay}>
-              <ActivityIndicator color="#fff" />
-            </View>
-          )}
-          <View style={styles.editIconContainer}>
-            <Ionicons name="camera" size={14} color="#fff" />
+    <AuthGuard>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Profile</Text>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              disabled={loading}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#fff" />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </View>
 
-      {/* User Info Section */}
-      <View style={styles.infoContainer}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Username</Text>
-          {isEditingUsername ? (
-            <View style={styles.editUsernameContainer}>
-              <TextInput
-                style={styles.usernameInput}
-                value={newUsername}
-                onChangeText={setNewUsername}
-                placeholder={profile?.username || "Enter username"}
-                placeholderTextColor="#666"
-                autoFocus
-              />
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={updateUsername}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="checkmark" size={20} color="#fff" />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => {
-                  setIsEditingUsername(false);
-                  setNewUsername("");
-                }}
-              >
-                <Ionicons name="close" size={20} color="#666" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.usernameContainer}>
-              <Text style={styles.value}>{profile?.username || "Not set"}</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setNewUsername(profile?.username || "");
-                  setIsEditingUsername(true);
-                }}
-                style={styles.editButton}
-              >
-                <Ionicons name="pencil" size={16} color="#666" />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{profile?.email}</Text>
-        </View>
-      </View>
+          {/* Profile Photo Section */}
+          <View style={styles.photoContainer}>
+            <TouchableOpacity onPress={pickImage} disabled={uploading}>
+              {profile?.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                  onError={(e) =>
+                    console.log("Image loading error:", e.nativeEvent.error)
+                  }
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={40} color="#666" />
+                </View>
+              )}
+              {uploading && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+              <View style={styles.editIconContainer}>
+                <Ionicons name="camera" size={14} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </View>
 
-      {/* Saved Shops Section Placeholder */}
-      <View style={styles.savedShopsContainer}>
-        <Text style={styles.sectionTitle}>Saved Shops</Text>
-        <Text style={styles.comingSoon}>Coming soon...</Text>
+          {/* User Info Section */}
+          <View style={styles.infoContainer}>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Username</Text>
+              {isEditingUsername ? (
+                <View style={styles.editUsernameContainer}>
+                  <TextInput
+                    style={styles.usernameInput}
+                    value={newUsername}
+                    onChangeText={setNewUsername}
+                    placeholder={profile?.username || "Enter username"}
+                    placeholderTextColor="#666"
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={updateUsername}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Ionicons name="checkmark" size={20} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setIsEditingUsername(false);
+                      setNewUsername("");
+                    }}
+                  >
+                    <Ionicons name="close" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.usernameContainer}>
+                  <Text style={styles.value}>
+                    {profile?.username || "Not set"}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setNewUsername(profile?.username || "");
+                      setIsEditingUsername(true);
+                    }}
+                    style={styles.editButton}
+                  >
+                    <Ionicons name="pencil" size={16} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.value}>{profile?.email}</Text>
+            </View>
+          </View>
+
+          {/* Saved Shops Section Placeholder */}
+          <View style={styles.savedShopsContainer}>
+            <Text style={styles.sectionTitle}>Saved Shops</Text>
+            <Text style={styles.comingSoon}>Coming soon...</Text>
+          </View>
+
+          {/* User's Shops Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>My Shops</Text>
+            <View style={styles.shopsContainer}>
+              {userShops.length > 0 ? (
+                userShops.map(renderShopCard)
+              ) : (
+                <Text style={styles.noShopsText}>
+                  You haven't added any shops yet
+                </Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </AuthGuard>
   );
 };
 
@@ -345,6 +406,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#111",
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -479,6 +543,46 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+  },
+  section: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  shopsContainer: {
+    gap: 12,
+  },
+  shopCard: {
+    flexDirection: "row",
+    backgroundColor: "#222",
+    borderRadius: 12,
+    overflow: "hidden",
+    height: 100,
+  },
+  shopImage: {
+    width: 100,
+    height: "100%",
+  },
+  shopInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "center",
+  },
+  shopName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  shopAddress: {
+    fontSize: 14,
+    color: "#999",
+    lineHeight: 18,
+  },
+  noShopsText: {
+    color: "#666",
+    textAlign: "center",
+    padding: 20,
+    fontSize: 16,
   },
 });
 

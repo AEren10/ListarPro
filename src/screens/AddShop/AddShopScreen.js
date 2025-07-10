@@ -22,7 +22,11 @@ const AddShopScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: "",
     img_url: "",
-    address: "",
+    address: "", // Detailed street address
+    building_no: "",
+    neighborhood: "",
+    district: "",
+    city: "",
     phone: "",
     email: "",
     website: "",
@@ -105,10 +109,17 @@ const AddShopScreen = ({ navigation }) => {
 
   // Form gönderme fonksiyonu
   const handleSubmit = async () => {
+    // Combine address fields into a full address
+    const fullAddress = `${formData.address} Sokak, No:${formData.building_no}, ${formData.neighborhood} Mahallesi, ${formData.district} İlçesi, ${formData.city}`;
+
     if (
       !image ||
       !formData.name ||
       !formData.address ||
+      !formData.building_no ||
+      !formData.neighborhood ||
+      !formData.district ||
+      !formData.city ||
       !formData.phone ||
       !formData.category_id
     ) {
@@ -154,12 +165,31 @@ const AddShopScreen = ({ navigation }) => {
       const { error: insertError } = await supabase.from("shops").insert([
         {
           ...formData,
+          address: fullAddress, // Use the combined address
           img_url: urlData.publicUrl,
           user_id: user.id,
         },
       ]);
 
       if (insertError) throw insertError;
+
+      // Reset form data
+      setFormData({
+        name: "",
+        img_url: "",
+        address: "",
+        building_no: "",
+        neighborhood: "",
+        district: "",
+        city: "",
+        phone: "",
+        email: "",
+        website: "",
+        description: "",
+        category_id: null,
+      });
+      setImage(null);
+      setShowCategories(false);
 
       Alert.alert("Success", "Shop added successfully!");
       navigation.goBack();
@@ -302,13 +332,56 @@ const AddShopScreen = ({ navigation }) => {
           )}
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Address"
-          placeholderTextColor="#666"
-          value={formData.address}
-          onChangeText={(text) => setFormData({ ...formData, address: text })}
-        />
+        {/* Address Section */}
+        <View style={styles.addressSection}>
+          <Text style={styles.addressTitle}>Address Details</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter street"
+            placeholderTextColor="#666"
+            value={formData.address}
+            onChangeText={(text) => setFormData({ ...formData, address: text })}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter building number"
+            placeholderTextColor="#666"
+            value={formData.building_no}
+            onChangeText={(text) =>
+              setFormData({ ...formData, building_no: text })
+            }
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter neighborhood"
+            placeholderTextColor="#666"
+            value={formData.neighborhood}
+            onChangeText={(text) =>
+              setFormData({ ...formData, neighborhood: text })
+            }
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter district"
+            placeholderTextColor="#666"
+            value={formData.district}
+            onChangeText={(text) =>
+              setFormData({ ...formData, district: text })
+            }
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter city"
+            placeholderTextColor="#666"
+            value={formData.city}
+            onChangeText={(text) => setFormData({ ...formData, city: text })}
+          />
+        </View>
 
         <TextInput
           style={styles.input}
@@ -367,8 +440,8 @@ const AddShopScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 40,
     flex: 1,
+    padding: 20,
     backgroundColor: "#111",
   },
   header: {
@@ -378,7 +451,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#fff",
+    marginBottom: 20,
+    color: "#e0e0e0",
   },
   form: {
     padding: 20,
@@ -388,13 +462,20 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   input: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    color: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 5,
+    padding: 12,
+    marginBottom: 10,
     fontSize: 16,
-    height: 50,
+    color: "#ffffff",
+    marginTop: 10,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: "#aaaaaa",
+    marginBottom: 5,
+    fontWeight: "500",
   },
   categorySelector: {
     backgroundColor: "#1a1a1a",
@@ -405,6 +486,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   categorySelectorText: {
     color: "#fff",
@@ -485,8 +568,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   imageContainer: {
-    marginVertical: 16,
     alignItems: "center",
+    marginBottom: 20,
   },
   imagePicker: {
     width: "100%",
@@ -510,6 +593,22 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 8,
     fontSize: 14,
+  },
+  addressSection: {
+    marginBottom: 15,
+    marginTop: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  addressTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
   },
 });
 

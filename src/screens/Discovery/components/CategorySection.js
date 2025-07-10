@@ -20,9 +20,11 @@ const CategorySection = ({ category, locations }) => {
         {locations.map((location) => (
           <LocationCard
             key={location.id}
+            id={location.id}
             image={location.image}
             title={location.title}
-            onPress={() => {}}
+            description={location.description}
+            address={location.address}
           />
         ))}
       </ScrollView>
